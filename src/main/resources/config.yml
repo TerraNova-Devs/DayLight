@@ -1,0 +1,3 @@
+# Duration of day and night in minutes
+day-length-minutes: 60
+night-length-minutes: 15

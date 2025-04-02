@@ -1,0 +1,9 @@
+name: DayLight
+version: '1.0.0'
+main: de.mcterranova.dayLight.DayLight
+api-version: '1.21.4'
+authors: [ Bastizeit ]
+commands:
+  daynightreload:
+    description: Reloads the day/night timer configuration.
+    usage: /daynightreload
