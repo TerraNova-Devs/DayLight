@@ -1,3 +1,4 @@
 # Duration of day and night in minutes
-day-length-minutes: 60
-night-length-minutes: 15
+day-length-minutes: 120
+night-length-minutes: 60
+sleep-ratio: 0.5
