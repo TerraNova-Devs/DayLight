@@ -25,6 +25,7 @@ public final class DayLight extends JavaPlugin implements CommandExecutor, TabCo
     private long nightLengthTicks;
     private double timeIncrement;
     private double sleepRatio;
+    private double customTime;
     private World world;
     private Random random;
 
@@ -41,58 +42,44 @@ public final class DayLight extends JavaPlugin implements CommandExecutor, TabCo
 
         getCommand("daynightreload").setExecutor(this);
         getCommand("daynightreload").setTabCompleter(this);
+        getCommand("addtime").setExecutor(this);
+        getCommand("addtime").setTabCompleter(this);
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        startDayNightCycleTask();
-        startWeatherCycleTask();
+        startDayNightCycleTask(world);
     }
 
     private void loadConfig() {
         reloadConfig();
         FileConfiguration config = getConfig();
-        dayLengthTicks = config.getLong("day-length-minutes", 120) * 60 * 20;
-        nightLengthTicks = config.getLong("night-length-minutes", 60) * 60 * 20;
+        dayLengthTicks = config.getLong("day-length-minutes", 10) * 60 * 20;
+        nightLengthTicks = config.getLong("night-length-minutes", 10) * 60 * 20;
         sleepRatio = config.getDouble("sleep-ratio", 0.5);
     }
 
-    private void startDayNightCycleTask() {
+    private void startDayNightCycleTask(World world) {
         new BukkitRunnable() {
-            private double customTime = world.getTime();
-
             @Override
             public void run() {
                 boolean isDay = customTime < 12000;
-                long currentPeriodLength = isDay ? dayLengthTicks : nightLengthTicks;
-                timeIncrement = 12000.0 / currentPeriodLength;
+                long ticksPerCycle = isDay ? dayLengthTicks : nightLengthTicks;
+                double increment = 12000.0 / ticksPerCycle;
 
-                customTime = (customTime + timeIncrement) % 24000;
+                customTime = (customTime + increment) % 24000;
                 world.setTime((long) customTime);
             }
         }.runTaskTimer(this, 0L, 1L);
-    }
-
-    // Weather cycle logic
-    private void startWeatherCycleTask() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                boolean currentlyStorming = world.hasStorm();
-                int nextWeatherDuration = random.nextInt(10) + 5; // weather changes every 5-15 minutes
-
-                world.setStorm(!currentlyStorming);
-                world.setWeatherDuration(nextWeatherDuration * 60 * 20);
-            }
-        }.runTaskTimer(this, 0L, 20L * 60L * 10L); // checks every 10 real-time minutes
     }
 
     // Allow players to skip nights
     @EventHandler
     public void onPlayerSleep(PlayerBedEnterEvent event) {
         World world = event.getPlayer().getWorld();
-        long sleeping = world.getPlayers().stream().filter(LivingEntity::isSleeping).count();
+        long sleeping = world.getPlayers().stream().filter(p -> p.isSleeping()).count();
         long needed = (long) Math.ceil(world.getPlayers().size() * sleepRatio);
 
         if (sleeping >= needed) {
+            customTime = 0;
             world.setTime(0);
             world.setStorm(false);
             world.setThundering(false);
@@ -116,6 +103,26 @@ public final class DayLight extends JavaPlugin implements CommandExecutor, TabCo
             sender.sendMessage("§aDay/Night timer configuration reloaded.");
             return true;
         }
+
+        if (command.getName().equalsIgnoreCase("addtime")) {
+            if(!sender.hasPermission("daylight.addtime")) {
+                sender.sendMessage("§cYou don't have permission to use this command.");
+                return true;
+            }
+            if (args.length == 1) {
+                try {
+                    long addedTicks = Long.parseLong(args[0]);
+                    customTime = (customTime + addedTicks) % 24000;
+                    sender.sendMessage("§aAdded " + addedTicks + " ticks to the current time.");
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("§cPlease provide a valid number of ticks.");
+                }
+            } else {
+                sender.sendMessage("§cUsage: /addtime <ticks>");
+            }
+            return true;
+        }
+
         return false;
     }
 

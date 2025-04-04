@@ -7,3 +7,6 @@ commands:
   daynightreload:
     description: Reloads the day/night timer configuration.
     usage: /daynightreload
+  addtime:
+    description: Adds time to the day/night timer.
+    usage: /addtime <ticks>
