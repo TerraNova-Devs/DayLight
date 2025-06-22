@@ -1,5 +1,6 @@
 package de.mcterranova.dayLight;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -8,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerBedEnterEvent;
@@ -21,11 +23,13 @@ import java.util.Random;
 
 public final class DayLight extends JavaPlugin implements CommandExecutor, TabCompleter, Listener {
 
+
     private long dayLengthTicks;
     private long nightLengthTicks;
     private double timeIncrement;
     private double sleepRatio;
     private double customTime;
+    private long sleeping;
     private World world;
     private Random random;
 
@@ -74,21 +78,32 @@ public final class DayLight extends JavaPlugin implements CommandExecutor, TabCo
     // Allow players to skip nights
     @EventHandler
     public void onPlayerSleep(PlayerBedEnterEvent event) {
-        World world = event.getPlayer().getWorld();
-        long sleeping = world.getPlayers().stream().filter(p -> p.isSleeping()).count();
+        Player player = event.getPlayer();
+        World world = player.getWorld();
         long needed = (long) Math.ceil(world.getPlayers().size() * sleepRatio);
 
-        if (sleeping >= needed) {
-            customTime = 0;
-            world.setTime(0);
-            world.setStorm(false);
-            world.setThundering(false);
-        }
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            sleeping = world.getPlayers().stream().filter(p -> p.getSleepTicks() > 0).count();
+            if (sleeping >= needed) {
+                Bukkit.getScheduler().runTaskLater(this, () -> {
+                    customTime = 0;
+                    world.setTime(0);
+                    world.setStorm(false);
+                    world.setThundering(false);
+                }, 20L);
+                world.sendMessage(Component.text("§aDie Nacht wird übersprungen"));
+            } else if (player.getSleepTicks() != 0){
+                player.sendMessage(Component.text("§cEs schlafen nicht genügend Spieler: " + sleeping + "/" + needed));
+            }
+        }, 2L);
     }
 
     // Allow manual weather changes
     @EventHandler
     public void onWeatherChange(WeatherChangeEvent event) {
+        if (event.getCause().equals(WeatherChangeEvent.Cause.COMMAND)) {
+            return;
+        }
         event.setCancelled(false);
     }
 
