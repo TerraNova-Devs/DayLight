@@ -2,6 +2,8 @@ package de.mcterranova.dayLight;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -39,8 +41,8 @@ public final class DayLight extends JavaPlugin implements CommandExecutor, TabCo
         loadConfig();
 
         world = Bukkit.getWorlds().get(0);
-        world.setGameRuleValue("doDaylightCycle", "false");
-        world.setGameRuleValue("doWeatherCycle", "false");
+        world.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, 0);
+        world.setGameRule(GameRules.ADVANCE_WEATHER, false);
 
         random = new Random();
 
